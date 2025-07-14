@@ -1,0 +1,27 @@
+name: Netlify Zero-Downtime Migration
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest  # ✅ Runs on GitHub's Ubuntu server, your local OS doesn't matter
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+
+    - name: Health Check New Site
+      run: |
+        curl -s -o /dev/null -w "%{http_code}" https://newsite-pro.netlify.app/ > status.txt
+        STATUS=$(cat status.txt)
+        if [ "$STATUS" -eq 200 ]; then
+          echo "✅ New site is healthy."
+        else
+          echo "❌ New site is not healthy. Status: $STATUS"
+          exit 1
+        fi
+
+    - name: Trigger Redeploy on Old Site
+      run: |
+        curl -X POST -d '{}' ${{ secrets.NETLIFY_OLD_HOOK }}
